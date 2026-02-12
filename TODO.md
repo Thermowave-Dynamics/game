@@ -1,22 +1,35 @@
-# TODO: Cooling Time Fix and Screen Improvements
+# GitHub Pages MIME Type Fix - TODO List
 
-## Changes Completed:
+## Changes Made:
 
-### 1. Fix cooling time to 15s ✅
-- [x] Updated useEffect condition from `coolingTime < 20` to `coolingTime < 15`
-- [x] Updated limit check from `if (next >= 20) return 20;` to `if (next >= 15) return 15;`
+### 1. Created `.nojekyll`
+- Prevents GitHub Pages from using Jekyll processing
+- Ensures JavaScript files are served correctly
 
-### 2. Improve START COOLING screen (Stage 4 pre-start) ✅
-- [x] Added animated syngas particle visualization with purple ping particles
-- [x] Enabled cooling power slider before starting (now interactive)
-- [x] Added cooling chamber preview with flow indicators and pipes
-- [x] Improved visual design with glow effects and cyan accents
-- [x] Added temperature target indicator (400°C goal with scale)
-- [x] Enhanced START COOLING button with gradient, pulsing animation and glow
-- [x] Ensured responsive design for all screen sizes (mobile to desktop)
+### 2. Created `_config.yml`
+- GitHub Pages configuration
+- Excludes build files from Jekyll processing
 
-### 3. Testing
-- [ ] Verify cooling timer stops at exactly 15s
-- [ ] Test responsive layout on different screen sizes
-- [ ] Verify all interactive elements work correctly
+### 3. Updated `vite.config.ts`
+- Added build options for proper file naming
+- Ensures consistent asset file extensions
+
+### 4. Created `404.html`
+- SPA fallback for GitHub Pages
+- Redirects to main app
+
+### 5. Created `public/_headers`
+- Proper MIME type headers for JavaScript files
+- Security headers
+
+## Next Steps:
+
+- [ ] Commit and push changes to main branch
+- [ ] GitHub Actions will auto-deploy to GitHub Pages
+- [ ] Verify the site loads correctly at https://[username].github.io/game/
+
+## Notes:
+- The build process will now produce properly named .js files
+- GitHub Pages will serve them with correct MIME types
+- SPA routing is handled via 404.html fallback
 

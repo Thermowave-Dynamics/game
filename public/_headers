@@ -1,0 +1,29 @@
+# Proper MIME type headers for GitHub Pages
+# This ensures JavaScript files are served with correct MIME types
+
+/*.js
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000
+
+/*.mjs
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000
+
+/*.jsx
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000
+
+/*.ts
+  Content-Type: application/typescript
+  Cache-Control: public, max-age=31536000
+
+/*.tsx
+  Content-Type: application/typescript
+  Cache-Control: public, max-age=31536000
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), gyroscope=()
+

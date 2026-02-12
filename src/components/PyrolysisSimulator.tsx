@@ -17,12 +17,15 @@ const PyrolysisSimulator: FC = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [coolingTime, setCoolingTime] = useState<number>(0);
   const [coolingStarted, setCoolingStarted] = useState<boolean>(false);
+  const [condensedFuel, setCondensedFuel] = useState<number>(0);
+  const [condensationParticles, setCondensationParticles] = useState<{id: number, x: number, speed: number}[]>([]);
   const [sortingProgress, setSortingProgress] = useState<{ biochar: number; syngas: number; liquidFuel: number; }>({ biochar: 0, syngas: 0, liquidFuel: 0 });
   const [sortingComplete, setSortingComplete] = useState<boolean>(false);
   const [spawnedProducts, setSpawnedProducts] = useState<SpawnedProduct[]>([]);
   const [losses, setLosses] = useState<number>(0);
   const [productQueue, setProductQueue] = useState<('liquidFuel' | 'syngas' | 'biochar')[]>([]);
   const [totalSpawned, setTotalSpawned] = useState<number>(0);
+  const particleIdRef = useRef<number>(0);
   const spawnIdRef = useRef<number>(0);
   
   // Touch drag state
@@ -31,8 +34,8 @@ const PyrolysisSimulator: FC = () => {
   
   const biomassRatio = 100 - plasticRatio;
   
-  const handlePlasticChange = (val: string) => {
-    const clamped = Math.max(0, Math.min(100, parseInt(val) || 0));
+  const handlePlasticChange = (val: string | number) => {
+    const clamped = Math.max(0, Math.min(100, parseInt(val.toString()) || 0));
     setPlasticRatio(clamped);
   };
   
@@ -114,25 +117,44 @@ const PyrolysisSimulator: FC = () => {
   
   const heatMetrics = calculateHeatMetrics();
   
-  // Cooling: easier parameters, stops at 15s
+  // Cooling: Interactive condensation system based on input ratios
   useEffect(() => {
-    if (stage === 4 && coolingStarted && coolingTime < 15) {
+    if (stage === 4 && coolingStarted && coolingTime < 20) {
       const interval = setInterval(() => {
         setCoolingTime(prev => {
           const next = prev + 0.1;
-          if (next >= 15) return 15;
+          if (next >= 20) return 20;
           return next;
         });
         setGasTemp(prev => {
-          const heatLoss = coolingPower * 1.2;
-          const naturalHeat = 3;
+          const heatLoss = coolingPower * 1.5;
+          const naturalHeat = 2;
           const newTemp = prev - heatLoss + naturalHeat;
           return Math.max(100, Math.min(900, newTemp));
         });
+        
+        // Calculate condensation based on temperature (optimal at 300-400°C)
+        const condensationRate = Math.max(0, 1 - Math.abs(gasTemp - 350) / 300);
+        if (Math.random() < condensationRate * 0.3) {
+          const newParticle = {
+            id: particleIdRef.current++,
+            x: 20 + Math.random() * 60,
+            speed: 0.5 + Math.random() * 1
+          };
+          setCondensationParticles(prev => [...prev.slice(-20), newParticle]);
+        }
+        
+        // Calculate condensed fuel based on input ratios and cooling efficiency
+        const pFrac = plasticRatio / 100;
+        const bFrac = biomassRatio / 100;
+        const baseLiquid = pFrac * 0.65 + bFrac * 0.25; // Plastic produces more liquid
+        const condensationEfficiency = Math.max(0, 1 - Math.abs(gasTemp - 350) / 400);
+        const fuelIncrement = baseLiquid * condensationEfficiency * 0.8;
+        setCondensedFuel(prev => Math.min(prev + fuelIncrement, baseLiquid * 100));
       }, 100);
       return () => clearInterval(interval);
     }
-  }, [stage, coolingPower, coolingStarted, coolingTime]);
+  }, [stage, coolingPower, coolingStarted, coolingTime, plasticRatio, biomassRatio, gasTemp]);
   
   const calculateYields = () => {
     const metrics = calculateHeatMetrics();
@@ -270,11 +292,13 @@ const PyrolysisSimulator: FC = () => {
   const resetGame = () => {
     setStage(0);
     setPlasticRatio(50);
-    setHeatGrid(Array(10).fill().map(() => Array(10).fill(0)));
+    setHeatGrid(Array(10).fill(null).map(() => Array(10).fill(0)));
     setCoolingPower(50);
     setGasTemp(600);
     setCoolingTime(0);
     setCoolingStarted(false);
+    setCondensedFuel(0);
+    setCondensationParticles([]);
     setSortingProgress({ biochar: 0, syngas: 0, liquidFuel: 0 });
     setSortingComplete(false);
     setSpawnedProducts([]);
@@ -282,6 +306,7 @@ const PyrolysisSimulator: FC = () => {
     setProductQueue([]);
     setTotalSpawned(0);
     spawnIdRef.current = 0;
+    particleIdRef.current = 0;
   };
 
   const totalSorted = sortingProgress.biochar + sortingProgress.syngas + sortingProgress.liquidFuel;
@@ -680,7 +705,7 @@ const PyrolysisSimulator: FC = () => {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
-                    const productType = e.dataTransfer.getData('productType');
+                    const productType = e.dataTransfer.getData('productType') as 'liquidFuel' | 'syngas' | 'biochar';
                     const productId = parseInt(e.dataTransfer.getData('productId'));
                     handleDrop('liquidFuel', productType, productId);
                   }}
@@ -696,7 +721,7 @@ const PyrolysisSimulator: FC = () => {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
-                    const productType = e.dataTransfer.getData('productType');
+                    const productType = e.dataTransfer.getData('productType') as 'liquidFuel' | 'syngas' | 'biochar';
                     const productId = parseInt(e.dataTransfer.getData('productId'));
                     handleDrop('syngas', productType, productId);
                   }}
@@ -712,7 +737,7 @@ const PyrolysisSimulator: FC = () => {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
-                    const productType = e.dataTransfer.getData('productType');
+                    const productType = e.dataTransfer.getData('productType') as 'liquidFuel' | 'syngas' | 'biochar';
                     const productId = parseInt(e.dataTransfer.getData('productId'));
                     handleDrop('biochar', productType, productId);
                   }}
@@ -1165,7 +1190,8 @@ const PyrolysisSimulator: FC = () => {
                       TRY DIFFERENT INPUTS
                     </button>
                     <button
-                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl text-sm sm:text-lg title-font transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 sm:gap-3"
+                      onClick={() => window.open('https://thermowave-dynamics.github.io/technology.html', '_blank')}
+                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl text-sm sm:text-lg title-font transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 sm:gap-3 cursor-pointer"
                     >
                       <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
                       LEARN HOW THIS WORKS
